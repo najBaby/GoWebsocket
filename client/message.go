@@ -2,12 +2,8 @@ package client
 
 type Kind string
 
-const (
-	Run Kind = "run"
-)
-
 type Message struct {
-	Id      int `json:"-"`
+	ID      int `json:"-"`
 	Kind    Kind
 	Content interface{}
 }

@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"fmt"
 	"net/url"
 	"remote"
 	"strconv"
@@ -16,14 +17,14 @@ func Add(cl *client.Client, msg *client.Message) {
 		cl.Io.Errc <- err
 	} else {
 		if room := cl.Store.GetRoom(compo.Compo); room != nil {
-
+			fmt.Println("ADD", cl.ID)
 			qu := url.Values{}
-			qu.Set("entity", "User")
-			qu.Set("Id", strconv.Itoa(cl.Id))
-			qu.Set("limits", "1")
-			qu.Set("fields", "Name,Language")
+			qu.Set("entity", "Student")
+			qu.Set("ID", strconv.Itoa(cl.ID))
+			qu.Set("limit", "1")
+			qu.Set("fields", "Name,Language__Name")
 
-			_, body, err := cl.Rt.GET(remote.RequestConfig{
+			_, body, err := cl.Remote.GET(remote.RequestConfig{
 				URL:   "http://localhost:1234/",
 				Query: qu,
 			})
@@ -32,22 +33,26 @@ func Add(cl *client.Client, msg *client.Message) {
 			} else {
 
 				user := struct {
-					Id       int
+					ID       int
 					Name     string
-					Language string
+					Language struct {
+						Name string
+					}
 				}{}
 				err := convertResponseTo(body, &user)
 				if err != nil {
 					cl.Io.Errc <- err
 				} else {
 					m := new(client.Message)
-					user.Id = cl.Id
+					user.ID = cl.ID
 					m.Kind = "add"
 					m.Content = struct {
 						User struct {
-							Id       int
+							ID       int
 							Name     string
-							Language string
+							Language struct {
+								Name string
+							}
 						}
 						Compo string
 					}{

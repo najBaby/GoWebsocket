@@ -33,4 +33,8 @@ var Routes []route = []route{
 		path:   "allusers",
 		action: Allusers,
 	},
+	{
+		path:   "alllanguages",
+		action: Alllanguages,
+	},
 }

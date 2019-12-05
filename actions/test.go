@@ -16,7 +16,7 @@ func Test(cl *client.Client, msg *client.Message) {
 		cl.Io.Errc <- err
 	} else {
 
-		_, body, err := cl.Rt.POST(remote.RequestConfig{
+		_, body, err := cl.Remote.POST(remote.RequestConfig{
 			URL: "",
 			Body: struct {
 				SourceCode string `json:"source_id"`
@@ -36,7 +36,7 @@ func Test(cl *client.Client, msg *client.Message) {
 			if err != nil {
 				cl.Io.Errc <- err
 			} else {
-				_, b, err := cl.Rt.GET(remote.RequestConfig{
+				_, b, err := cl.Remote.GET(remote.RequestConfig{
 					URL: "" + token.Token + "",
 				})
 				if err != nil {

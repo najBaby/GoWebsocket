@@ -9,12 +9,11 @@ import (
 
 func Login(cl *client.Client, msg *client.Message) {
 	qu := url.Values{}
-	qu.Set("entity", "User")
-	qu.Set("limits", "1")
-	qu.Set("fields", "Id")
+	qu.Set("entity", "Student")
+	qu.Set("limit", "1")
+	qu.Set("fields", "ID,Name,Language__Name,Language__Index")
 
 	user := struct {
-		Id       int
 		Email    string
 		Password string
 	}{}
@@ -25,7 +24,7 @@ func Login(cl *client.Client, msg *client.Message) {
 
 		qu.Set("Email", user.Email)
 		qu.Set("Password", user.Password)
-		_, body, err := cl.Rt.GET(remote.RequestConfig{
+		_, body, err := cl.Remote.GET(remote.RequestConfig{
 			URL:   "http://localhost:1234/",
 			Query: qu,
 		})
@@ -35,7 +34,12 @@ func Login(cl *client.Client, msg *client.Message) {
 		} else {
 
 			userID := new(struct {
-				ID int `json:"Id"`
+				ID       int
+				Name     string
+				Language struct {
+					Name  string
+					Index int
+				}
 			})
 			err = convertResponseTo(body, userID)
 			if err != nil {
@@ -45,8 +49,19 @@ func Login(cl *client.Client, msg *client.Message) {
 
 				if err == nil {
 					if userID != nil {
-						cl.Id = userID.ID
-						cl.Store.Clients[cl.Id] = cl
+						cl.ID = userID.ID
+						cl.Store.Clients[cl.ID] = cl
+						m := new(client.Message)
+						m.Kind = "connected"
+						m.Content = map[string]interface{}{
+							"Name": userID.Name,
+							"Language": map[string]interface{}{
+								"Name":  userID.Language.Name,
+								"Index": userID.Language.Index,
+							},
+						}
+						cl.Io.Out <- m
+						fmt.Println(m)
 					}
 				}
 			}

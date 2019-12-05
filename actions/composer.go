@@ -2,7 +2,7 @@ package actions
 
 import (
 	"fmt"
-	"strconv"
+	"remote"
 	"time"
 	"web/websocket/client"
 )
@@ -17,63 +17,83 @@ func Composer(cl *client.Client, msg *client.Message) {
 		cl.Io.Errc <- err
 	} else {
 		if room := cl.Store.GetRoom(compo.Compo); room != nil {
-			if room.Admin == cl.Id {
-				go func() {
-					ticker := time.NewTicker(time.Second)
-					defer ticker.Stop()
-					done := make(chan bool)
-					go func() {
-						time.Sleep(10 * time.Second)
-						done <- true
-					}()
-					i := 11
-					for {
-						select {
-						case <-done:
-							fmt.Println("Done!")
-							return
-						case <-ticker.C:
-							m := new(client.Message)
-							m.Kind = "ready"
-							m.Content = struct {
-								T string
-							}{
-								T: strconv.Itoa(i),
-							}
-							for _, c := range room.Clients {
-								c.Io.Out <- m
-							}
-						}
-						i--
-					}
-				}()
-				time.AfterFunc(10*time.Second, func() {
-					ticker := time.NewTicker(time.Second)
-					defer ticker.Stop()
-					done := make(chan bool)
-					go func() {
-						time.Sleep(20 * time.Second)
-						done <- true
-					}()
-					for {
-						select {
-						case <-done:
-							fmt.Println("Done!")
-							return
-						case t := <-ticker.C:
-							m := new(client.Message)
-							m.Kind = "time"
-							m.Content = struct {
-								T string
-							}{
-								T: t.Format("15:04:05"),
-							}
-							for _, c := range room.Clients {
-								c.Io.Out <- m
-							}
-						}
-					}
+			if room.Admin == cl.ID {
+				_, body, err := cl.Remote.POST(remote.RequestConfig{
+					URL: "http://localhost:1234/",
+					Body: map[string]interface{}{
+						"entity": "Challenge",
+						"fields": map[string]interface{}{
+							"Admin":   room.Admin,
+							"Expired": false,
+						},
+					},
 				})
+				chalID := struct {
+					ID int
+				}{}
+				convertResponseTo(body, &chalID)
+				for _, c := range room.Clients {
+					_, _, _ = cl.Remote.POST(remote.RequestConfig{
+						URL: "http://localhost:1234/",
+						Body: map[string]interface{}{
+							"nm2m":     "Challenge",
+							"rel":      "Students",
+							"nreverse": "Student",
+							"m2m": map[string]interface{}{
+								"ID": chalID.ID,
+							},
+							"reverse": map[string]interface{}{
+								"ID": c.ID,
+							},
+						},
+					})
+				}
+				_, _ = body, err
+				for i := 10; 0 <= i; i-- {
+					<-time.Tick(time.Second)
+					m := new(client.Message)
+					m.Kind = "ready"
+					m.Content = struct {
+						T int
+					}{
+						T: i,
+					}
+					for _, c := range room.Clients {
+						c.Io.Out <- m
+					}
+				}
+				go func() {
+					started, _ := time.Parse("15:04:05", "00:00:20")
+					for range time.Tick(time.Second) {
+						current := started.Format("15:04:05")
+						m := new(client.Message)
+						m.Kind = "time"
+						m.Content = struct {
+							Time string
+						}{
+							Time: started.Format("15:04:05"),
+						}
+						for _, c := range room.Clients {
+							c.Io.Out <- m
+						}
+						if current == "00:00:00" {
+							break
+						}
+						started = started.Add(-1 * time.Second)
+					}
+					_, _, _ = cl.Remote.PUT(remote.RequestConfig{
+						URL: "http://localhost:1234/",
+						Body: map[string]interface{}{
+							"entity": "Challenge",
+							"filter": map[string]interface{}{
+								"ID": chalID.ID,
+							},
+							"fields": map[string]interface{}{
+								"Expired": true,
+							},
+						},
+					})
+				}()
 			}
 		}
 	}

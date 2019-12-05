@@ -15,11 +15,11 @@ type io struct {
 }
 
 type Client struct {
-	Io    io
-	Id    int
-	Msg   Message
-	Store *store
-	Rt    *remote.Remote
+	Io     io
+	ID     int
+	Msg    Message
+	Store  *store
+	Remote *remote.Remote
 }
 
 func newClient(store *store) *Client {
@@ -29,8 +29,8 @@ func newClient(store *store) *Client {
 			Out:  make(chan *Message),
 			Errc: make(chan error, 1),
 		},
-		Store: store,
-		Rt:    remote.NewRemote(remote.RemoteConfig{}),
+		Store:  store,
+		Remote: remote.NewRemote(remote.RemoteConfig{}),
 	}
 }
 

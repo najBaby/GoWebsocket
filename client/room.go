@@ -18,11 +18,11 @@ func NewRoom() *room {
 }
 
 func (r *room) AddClient(cl *Client) {
-	r.Clients[cl.Id] = cl
+	r.Clients[cl.ID] = cl
 }
 
 func (r *room) RemoveClient(cl *Client) {
-	delete(r.Clients, cl.Id)
+	delete(r.Clients, cl.ID)
 }
 
 func (r *room) GetClient(id int) *Client {
